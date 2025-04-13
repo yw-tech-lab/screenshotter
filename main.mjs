@@ -3,8 +3,26 @@ import puppeteer from "puppeteer";
 import urls from "./cne.mjs";
 
 const runScript = async (directory, viewport) => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: false,
+        args: ['--lang=en-US,en'] // Set language to prevent translate prompt
+    });
     const page = await browser.newPage();
+
+    // Set language preferences
+    await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9'
+    });
+
+    // Override language settings
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'language', {
+            get: function() { return 'en-US'; }
+        });
+        Object.defineProperty(navigator, 'languages', {
+            get: function() { return ['en-US', 'en']; }
+        });
+    });
 
     await page.setViewport(viewport);
 
@@ -39,12 +57,12 @@ const generateScreenshots = async () => {
     const mobile = {
         directory: "mobile",
         viewport: {
-            width: 700,
+            width: 400,
             height: 900,
             deviceScaleFactor: 1,
         },
     };
-    [desktop, mobile].forEach(async (config) => {
+    [mobile, desktop].forEach(async (config) => {
         await runScript(config.directory, config.viewport);
     });
 };
